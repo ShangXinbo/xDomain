@@ -6,26 +6,47 @@ const mongoose = require('mongoose');
 
 const DB = 'mongodb://shang:shang123@127.0.0.1:27017/domain';
 
-const word = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','w'];
-
 const mainSchema = new mongoose.Schema({
     name: String,
     status: Boolean,
     info: mongoose.Schema.Types.Mixed
 });
+
 const logSchema = new mongoose.Schema({
-    i: Number,
-    j: Number
+    serial0: Number,
+    serial1: Number,
+    serial2: Number,
+    serial3: Number,
+    serial4: Number
 });
 
-var domain = mongoose.model('domain', mainSchema);
+const word = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+const number = [0,1,2,3,4,5,6,7,8,9];
+
+
+let domainNumber = 3;
+
+let collectionName = '';
+for(var i=0;i<domainNumber;i++){
+    collectionName += 'x';
+}
+
+var domain = mongoose.model(collectionName, mainSchema);
 var log = mongoose.model('log', logSchema);
+
 log.findOne({},function(err,doc){
 
-    let i = doc.i, j = doc.j;
-    setInterval(function(){
 
-        var url = 'http://api.whoapi.com/?apikey=2bc7de0a36a1584590ac5995f5319c59&r=whois&domain='+ word[i] + word[j] + '.com';
+
+    var mytimer = setInterval(function(){
+
+        let domainName = '', domainType = '.com';
+
+        for(var i=0;i<domainNumber;i++){
+            domainName += word[doc['serial'+i]];
+        }
+
+        var url = 'http://api.whoapi.com/?apikey=2bc7de0a36a1584590ac5995f5319c59&r=whois&domain='+ domainName + domainType;
 
         var options = {
             hostname: 'api.whoapi.com',
@@ -40,18 +61,30 @@ log.findOne({},function(err,doc){
             res.setEncoding('utf8');
             res.on('data', function (chunk) {
                 var data = JSON.parse(chunk);
+                console.log(chunk);
                 if(data.status == 0){
                     var sa = new domain({
-                        name: word[i] + word[j] + '.com',
+                        name: domainName + domainType,
                         status:data.registered,
                         info: data
                     });
-                    sa.save();
-                    log.findOne({},function(err,mei){
-                        mei.i = i;
-                        mei.j = j;
-                        mei.save();
-                    })
+                    sa.save(function(){
+                        for(var j=domainNumber-1;j>=0;j--){
+                            if(doc['serial'+j]<25){
+                                doc['serial'+j] ++;
+                                break;
+                            }else{
+                                if(j==0){
+                                    clearInterval(mytimer);
+                                }else{
+                                    doc['serial'+j] = 0;
+                                    doc['serial'+(j-1)]++;
+                                }
+                            }
+                        }
+                        doc.save();
+                    });
+
                 }else{
                     console.log(data);
                 }
@@ -62,18 +95,7 @@ log.findOne({},function(err,doc){
             });
         });
         req.end();
-
-        if(j<25){
-            j++;
-        }else{
-            i++;
-            j = 0;
-        }
-
     },1100*60);
-
 });
-
-
 
 mongoose.connect(DB);
