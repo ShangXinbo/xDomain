@@ -47,6 +47,7 @@ log.findOne({},function(err,doc){
         }
 
         var url = 'http://api.whoapi.com/?apikey=2bc7de0a36a1584590ac5995f5319c59&r=whois&domain='+ domainName + domainType;
+        //var url = 'http://whois.nameisp.com/?apikey=2bc7de0a36a1584590ac5995f5319c59&r=whois&domain='+ domainName + domainType;
 
         var options = {
             hostname: 'api.whoapi.com',
@@ -62,7 +63,7 @@ log.findOne({},function(err,doc){
             res.on('data', function (chunk) {
                 var data = JSON.parse(chunk);
                 console.log(chunk);
-                if(data.status == 0){
+                if(data.status == 0||data.status==7){
                     var sa = new domain({
                         name: domainName + domainType,
                         status:data.registered,
@@ -71,20 +72,21 @@ log.findOne({},function(err,doc){
                     sa.save(function(){
                         for(var j=domainNumber-1;j>=0;j--){
                             if(doc['serial'+j]<25){
-                                doc['serial'+j] ++;
+                                doc['serial'+j]++;
                                 break;
                             }else{
                                 if(j==0){
                                     clearInterval(mytimer);
+                                    break;
                                 }else{
                                     doc['serial'+j] = 0;
                                     doc['serial'+(j-1)]++;
+                                    break;
                                 }
                             }
                         }
                         doc.save();
                     });
-
                 }else{
                     console.log(data);
                 }
