@@ -62,7 +62,6 @@ log.findOne({},function(err,doc){
             res.setEncoding('utf8');
             res.on('data', function (chunk) {
                 var data = JSON.parse(chunk);
-                console.log(chunk);
                 if(data.status == 0||data.status==7){
                     var sa = new domain({
                         name: domainName + domainType,
